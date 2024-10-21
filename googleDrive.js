@@ -1,5 +1,4 @@
 const { google } = require('googleapis');
-const stream = require('stream');
 
 const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
 
@@ -37,7 +36,7 @@ async function getImageFromDrive(auth, fileName) {
   };
 }
 
-async function downloadImage(fileName) {
+export async function downloadImage(fileName) {
   try {
     const auth = await authorize();
     return await getImageFromDrive(auth, fileName);
@@ -46,5 +45,3 @@ async function downloadImage(fileName) {
     throw error;
   }
 }
-
-module.exports = { downloadImage };
