@@ -4,17 +4,13 @@
   "main": "index.js",
   "scripts": {
     "start": "vercel dev",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "deploy": "vercel --prod"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@google-cloud/local-auth": "^3.0.1",
-    "@vercel/node": "^3.2.23",
-    "dotenv": "^16.4.5",
-    "googleapis": "^144.0.0",
-    "sharp": "^0.33.5"
+    "@google-cloud/local-auth": "^2.1.0",
+    "@vercel/node": "^2.9.6",
+    "dotenv": "^16.0.3",
+    "googleapis": "^118.0.0",
+    "sharp": "^0.32.1"
   }
 }

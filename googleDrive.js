@@ -1,47 +1,28 @@
 const { google } = require('googleapis');
+const stream = require('stream');
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
+/// Configuración de autenticación
+const auth = new google.auth.GoogleAuth({
+  credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+});
 
-async function authorize() {
-  const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
-    scopes: SCOPES,
-  });
-  return auth;
-}
+const drive = google.drive({ version: 'v3', auth });
 
-async function getImageFromDrive(auth, fileName) {
-  const drive = google.drive({version: 'v3', auth});
-  const res = await drive.files.list({
-    q: `name='${fileName}' and '${process.env.GOOGLE_DRIVE_FOLDER_ID}' in parents`,
-    fields: 'files(id, name)',
-    spaces: 'drive',
-  });
-  
-  const files = res.data.files;
-  if (files.length === 0) {
-    throw new Error('Image not found');
-  }
-
-  const fileId = files[0].id;
-
-  const response = await drive.files.get(
-    {fileId: fileId, alt: 'media'},
-    {responseType: 'arraybuffer'}
-  );
-
-  return {
-    buffer: Buffer.from(response.data),
-    mimeType: response.headers['content-type']
-  };
-}
-
-export async function downloadImage(fileName) {
+async function downloadImage(fileId) {
   try {
-    const auth = await authorize();
-    return await getImageFromDrive(auth, fileName);
+    const res = await drive.files.get(
+      { fileId: fileId, alt: 'media' },
+      { responseType: 'arraybuffer' }
+    );
+
+    return Buffer.from(res.data);
   } catch (error) {
-    console.error('Error accessing Google Drive:', error);
+    console.error('Error al descargar la imagen de Google Drive:', error);
     throw error;
   }
 }
+
+module.exports = {
+  downloadImage
+};
