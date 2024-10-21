@@ -1,49 +1,14 @@
-const fs = require('fs').promises;
-const path = require('path');
-const process = require('process');
-const {authenticate} = require('@google-cloud/local-auth');
-const {google} = require('googleapis');
+const { google } = require('googleapis');
+const stream = require('stream');
 
 const SCOPES = ['https://www.googleapis.com/auth/drive.readonly'];
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
-
-async function loadSavedCredentialsIfExist() {
-  try {
-    const content = await fs.readFile(TOKEN_PATH);
-    const credentials = JSON.parse(content);
-    return google.auth.fromJSON(credentials);
-  } catch (err) {
-    return null;
-  }
-}
-
-async function saveCredentials(client) {
-  const content = await fs.readFile(CREDENTIALS_PATH);
-  const keys = JSON.parse(content);
-  const key = keys.installed || keys.web;
-  const payload = JSON.stringify({
-    type: 'authorized_user',
-    client_id: key.client_id,
-    client_secret: key.client_secret,
-    refresh_token: client.credentials.refresh_token,
-  });
-  await fs.writeFile(TOKEN_PATH, payload);
-}
 
 async function authorize() {
-  let client = await loadSavedCredentialsIfExist();
-  if (client) {
-    return client;
-  }
-  client = await authenticate({
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS),
     scopes: SCOPES,
-    keyfilePath: CREDENTIALS_PATH,
   });
-  if (client.credentials) {
-    await saveCredentials(client);
-  }
-  return client;
+  return auth;
 }
 
 async function getImageFromDrive(auth, fileName) {
@@ -60,26 +25,16 @@ async function getImageFromDrive(auth, fileName) {
   }
 
   const fileId = files[0].id;
-  const dest = path.join(process.cwd(), 'temp', fileName);
-  const destStream = fs.createWriteStream(dest);
 
   const response = await drive.files.get(
     {fileId: fileId, alt: 'media'},
-    {responseType: 'stream'}
+    {responseType: 'arraybuffer'}
   );
 
-  return new Promise((resolve, reject) => {
-    response.data
-      .on('end', () => {
-        console.log('File downloaded successfully');
-        resolve(dest);
-      })
-      .on('error', err => {
-        console.error('Error downloading file');
-        reject(err);
-      })
-      .pipe(destStream);
-  });
+  return {
+    buffer: Buffer.from(response.data),
+    mimeType: response.headers['content-type']
+  };
 }
 
 async function downloadImage(fileName) {
