@@ -1,5 +1,5 @@
-import { getNextPendingTweet } from '../googleSheets';
-import { downloadImage } from '../googleDrive';
+import { getNextPendingTweet } from './googleSheets';
+import { downloadImage } from './googleDrive';
 
 export default async function handler(req, res) {
   try {
