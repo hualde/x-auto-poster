@@ -5,11 +5,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2, AlertCircle } from 'lucide-react'
 
+interface ImageVariant {
+  url: string
+  effect: string
+}
+
 interface TweetData {
   nombreFoto: string
   textoTweet: string
   estado: string
-  imageUrl?: string
+  imageVariants: ImageVariant[]
 }
 
 export default function XRepostBot() {
@@ -29,17 +34,18 @@ export default function XRepostBot() {
       if (!response.ok) {
         throw new Error('Failed to fetch tweet data')
       }
-      const tweet: TweetData = await response.json()
+      const tweet: Omit<TweetData, 'imageVariants'> = await response.json()
 
       if (tweet) {
-        const imageResponse = await fetch(`/api/downloadImage?fileName=${encodeURIComponent(tweet.nombreFoto)}`)
+        const imageResponse = await fetch(`/api/processImage?fileName=${encodeURIComponent(tweet.nombreFoto)}`)
         if (!imageResponse.ok) {
-          throw new Error('Failed to download image')
+          throw new Error('Failed to process image')
         }
-        const { url: imageUrl } = await imageResponse.json()
+        const imageVariants: ImageVariant[] = await imageResponse.json()
 
-        setTweetData({ ...tweet, imageUrl })
-        setSelectedImage(imageUrl)
+        const fullTweetData: TweetData = { ...tweet, imageVariants }
+        setTweetData(fullTweetData)
+        setSelectedImage(imageVariants[0].url) // Select the original image by default
       } else {
         setError('No se encontraron tweets pendientes')
       }
@@ -124,28 +130,27 @@ export default function XRepostBot() {
           <h2 className="text-xl font-semibold mb-2">Tweet Text:</h2>
           <p className="bg-gray-100 p-4 rounded-md mb-4">{tweetData.textoTweet}</p>
 
-          <h2 className="text-xl font-semibold mt-4 mb-2">Imagen Procesada:</h2>
-          <Card 
-            className={`cursor-pointer ${selectedImage === tweetData.imageUrl ? 'ring-2 ring-blue-500' : ''}`}
-            onClick={() => handleImageSelect(tweetData.imageUrl!)}
-          >
-            <CardContent className="p-4">
-              <h3 className="text-lg font-medium mb-2">{tweetData.nombreFoto}</h3>
-              {tweetData.imageUrl ? (
-                <div className="relative w-full h-64">
-                  <img 
-                    src={tweetData.imageUrl} 
-                    alt={`Imagen ${tweetData.nombreFoto}`} 
-                    className="w-full h-full object-cover rounded-md"
-                  />
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-64 bg-gray-200 rounded-md">
-                  <AlertCircle className="h-12 w-12 text-gray-400" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <h2 className="text-xl font-semibold mt-4 mb-2">Imágenes Procesadas:</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {tweetData.imageVariants.map((variant, index) => (
+              <Card 
+                key={index}
+                className={`cursor-pointer ${selectedImage === variant.url ? 'ring-2 ring-blue-500' : ''}`}
+                onClick={() => handleImageSelect(variant.url)}
+              >
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-medium mb-2">{variant.effect}</h3>
+                  <div className="relative w-full h-48">
+                    <img 
+                      src={variant.url} 
+                      alt={`${variant.effect} - ${tweetData.nombreFoto}`} 
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
           <div className="mt-6 flex justify-center">
             <Button onClick={handleTweet} disabled={!selectedImage || loading}>

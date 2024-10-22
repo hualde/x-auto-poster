@@ -82,3 +82,39 @@ export async function getNextPendingTweet(): Promise<Tweet | null> {
     throw error;
   }
 }
+
+export async function updateTweetStatus(nombreFoto: string, newStatus: string): Promise<void> {
+  if (!auth) {
+    console.error('Google API authentication is not set up correctly');
+    throw new Error('Google API authentication is not set up correctly');
+  }
+
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: RANGE,
+    });
+
+    const rows = response.data.values;
+    if (rows && rows.length) {
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i][0] === nombreFoto) {
+          await sheets.spreadsheets.values.update({
+            spreadsheetId: SPREADSHEET_ID,
+            range: `X!C${i + 2}`,
+            valueInputOption: 'RAW',
+            requestBody: {
+              values: [[newStatus]]
+            }
+          });
+          console.log(`Updated status for ${nombreFoto} to ${newStatus}`);
+          return;
+        }
+      }
+    }
+    console.error(`Tweet with nombreFoto ${nombreFoto} not found`);
+  } catch (error) {
+    console.error('Error updating tweet status:', error);
+    throw error;
+  }
+}
