@@ -1,4 +1,4 @@
-const { getNextPendingTweet } = require('../googleSheets');
+const { getNextPendingTweet } = require('../../lib/googleSheets');
 // Importa otras funciones necesarias aquí
 
 module.exports = async (req, res) => {
